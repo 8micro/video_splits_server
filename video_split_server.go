@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"strconv"
 )
 
 var FFMPEGPath string = "/data/web/ffmpeg_ubuntu/ffmpeg-git-20171206-64bit-static/ffmpeg"
@@ -155,21 +154,4 @@ func execute(cmdPath string, args string, userId string, uuid string) (err error
 	log.Printf("execute finished")
 
 	return nil
-}
-
-func EncodingArgs(videoInput string, videoManifestOutputPath string, videoManifestPrefix string, segmentInterval int, videoSegOutputPath string, videoSegOutputPrefix string) []string {
-	//args := fmt.Sprintf("-i %s -c copy -map 0 -f segment -segment_list /data/web/video/test_output/%s.m3u8 -segment_time %d %s%s03d.ts",
-	//	"/data/web/video/test2.mp4", "split_test", 5, "/data/web/video/test_output/split_test_", "%")
-	// see http://superuser.com/questions/908280/what-is-the-correct-way-to-fix-keyframes-in-ffmpeg-for-dash
-	return []string{
-		// Prevent encoding to run longer than 30 seonds
-		"-i", videoInput,
-		"-c copy -map 0 -f segment  -segment_list", videoManifestOutputPath, videoManifestPrefix, ".m3u8",
-		"-segment_time",
-		strconv.Itoa(segmentInterval),
-		videoSegOutputPath,
-		videoSegOutputPrefix,
-		"%d03d.ts",
-		//"pipe:out%03d.ts",
-	}
 }
