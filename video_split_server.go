@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,8 @@ import (
 var FFMPEGPath string = "/data/web/ffmpeg_ubuntu/ffmpeg-git-20171206-64bit-static/ffmpeg"
 var SplitTimeInterval int32 = 5
 
+const DbURL string = "http://127.0.0.1/save_video"
+
 type SplitRequest struct {
 	UserID        string `json:"userid"`       // user id
 	UUID          string `json:"uuid"`         //file upload uuid
@@ -24,6 +27,20 @@ type SplitRequest struct {
 	VideoRate     string `json:"videorate"`
 	VideoDuration string `json:"videoDuration"`
 	VideoFileSize string `json:"videofilesize"`
+}
+
+type SaveVideoRequest struct {
+	UserID                    string `json:"userid"`
+	UUID                      string `json:"uuid"`
+	VideoOriginFilePathName   string `json:"video_file_path_name"`
+	VideoOriginFileDir        string `json:"video_file_dir"`
+	VideoFileManifestPathName string `json:"video_manifest"` // full path for video splits manifest file .m3u8
+	VideoManifestDir          string `json:"video_manifest_dir"`
+	VideoHeight               string `json:"video_height"`
+	VideoWidth                string `json:"video_width"`
+	VideoRate                 string `json:"video_rate"`
+	VideoDuration             string `json:"video_duration"`
+	VideoFileSize             string `json:"video_file_size"`
 }
 
 func main() {
@@ -76,13 +93,13 @@ func doSplit(w http.ResponseWriter, req *http.Request) {
 	userID := request.UserID
 	uuid := request.UUID
 	filePathName := request.FilePathName
-	// fileDir := request.FilePathName
-	// fileName := request.FileName
-	// videoheight := request.VideoHeight
-	// videoWidth := request.VideoWidth
-	// videoRate := request.VideoRate
-	// videoDuration := request.VideoDuration
-	// videoFileSize := request.VideoFileSize
+	fileDir := request.FilePathName
+	//fileName := request.FileName
+	videoheight := request.VideoHeight
+	videoWidth := request.VideoWidth
+	videoRate := request.VideoRate
+	videoDuration := request.VideoDuration
+	videoFileSize := request.VideoFileSize
 
 	videoManifestFilePathName := filePathName + ".m3u8"
 	videoSegmentsPathNamePrefix := filePathName
@@ -99,6 +116,35 @@ func doSplit(w http.ResponseWriter, req *http.Request) {
 	}
 
 	//send post request to api server
+	var saveRequest SaveVideoRequest
+	saveRequest.UserID = userID
+	saveRequest.UUID = uuid
+	saveRequest.VideoDuration = videoDuration
+	saveRequest.VideoFileManifestPathName = videoManifestFilePathName
+	saveRequest.VideoFileSize = videoFileSize
+	saveRequest.VideoHeight = videoheight
+	saveRequest.VideoManifestDir = fileDir
+	saveRequest.VideoOriginFileDir = fileDir
+	saveRequest.VideoOriginFilePathName = filePathName
+	saveRequest.VideoRate = videoRate
+	saveRequest.VideoWidth = videoWidth
+
+	b, err2 := json.Marshal(saveRequest)
+	if err2 != nil {
+		log.Printf("marshal json save request failed for %v", saveRequest)
+		return
+	}
+	sendreq := bytes.NewBuffer(b)
+	resp, err3 := http.Post(DbURL, "application/json;charset=utf-8", sendreq)
+	if err3 != nil {
+		log.Printf("send save request to db failed")
+		return
+	}
+	if resp.Status == "200 OK" {
+		log.Printf("save video to db success")
+	} else {
+		log.Printf("save video to db failed %v", saveRequest)
+	}
 
 }
 
